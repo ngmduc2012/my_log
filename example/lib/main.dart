@@ -38,16 +38,11 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       // home: LogScreen(logPath: logPath),
       builder: (context,child){
-        return MyLocaleListener(didChangeLocales: (locale){
-          myLog.warning(locale?.languageCode, tag: "didChangeLocales -> languageCode");
-
-        },
-          child:  MyConsoleLog(
-            controller: consoleLogController,
-            children: [
-              LogScreen(logPath: logPath)
-            ],
-          ),
+        return MyConsoleLog(
+          controller: consoleLogController,
+          children: [
+            LogScreen(logPath: logPath)
+          ],
         );
       },
     );

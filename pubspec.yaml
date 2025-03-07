@@ -1,5 +1,5 @@
 name: my_log
-description: A starting point for Dart libraries or applications.
+description: A powerful Flutter logging package with colored logs, file logging, and real-time log display on screen.
 version: 1.0.0
 # repository: https://github.com/my_org/my_repo
 
