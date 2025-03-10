@@ -1,14 +1,18 @@
-# Setting Up Colored Logs, Saving Logs to Device Memory, and Viewing Logs in Real-Time with MyLog
+
+[![GitHub](https://img.shields.io/badge/Nguyen_Duc-GitHub-black?logo=github)](https://github.com/ngmduc2012)
+_[![Buy Me A Coffee](https://img.shields.io/badge/Donate-Buy_Me_A_Coffee-blue?logo=buymeacoffee)](https://www.buymeacoffee.com/ducmng12g)_
+_[![PayPal](https://img.shields.io/badge/Donate-PayPal-blue?logo=paypal)](https://paypal.me/ngmduc)_
+_[![Sponsor](https://img.shields.io/badge/Sponsor-Become_A_Sponsor-blue?logo=githubsponsors)](https://github.com/sponsors/ngmduc2012)_
+_[![Support Me on Ko-fi](https://img.shields.io/badge/Donate-Ko_fi-red?logo=ko-fi)](https://ko-fi.com/I2I81AEJG8)_
+
+# Colored Logs, Float Logs
 
 ## Introduction
 Logging is an essential aspect of application development, helping developers monitor application behavior, debug issues, and maintain logs for future reference. The `MyLog` package provides a powerful logging system that allows you to:
 - Set up colored logs for better readability.
 - Save log files to the device memory.
 - Display logs in real-time on the screen.
-- Support both front and rear cameras.
 - Switch the application mode to development mode.
-
-This guide will walk you through the installation, setup, and usage of `MyLog` in your Flutter application.
 
 ## Installation and Usage
 
@@ -31,11 +35,11 @@ To properly initialize logging, configure `MyLog` in your main application file.
 In the `main()` function of your application, after calling `WidgetsFlutterBinding.ensureInitialized();`, initialize `MyLog` using the `setUp()` function:
 
 ```dart
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  MyLog myLog = MyLog();
   await myLog.setUp(
-    path: 'path/to/your/logfile.txt', // Specify the log file path.
+    path: 'path/to/your/logfile.txt', // Specify the log file path. This is OPTION
     printTime: true, // Enables timestamp in logs.
     isLogging: true, // Enables logging.
     noteInfoFileLog: 'This is the log file for my Flutter app.',
@@ -43,21 +47,30 @@ void main() async {
   runApp(MyApp());
 }
 ```
+Result:
+
+![file_logs.jpg](file_logs.jpg)
 
 Once configured, logs will be saved to the specified file path.
 
 ### 3. Using Logging Methods
 Throughout your application, use the logging methods provided by the `MyLog` class to record messages at different levels (trace, debug, info, warning, error, fatal).
-
+Tags and flags allow you to easily search for and track logs if they belong to a specific thread or function.
 Example usage:
 ```dart
+myLog.info('info', tag: "WSS", flag: "Payment feature");
 myLog.debug('Button pressed');
 myLog.warning('This is a warning');
 myLog.error('This is an error');
 ```
+Result:
+
+![color_log.png](color_log.png)
 
 ### 4. Display Logs on Screen for Easy Tracking
 To view logs in real-time on your application screen, follow these steps:
+
+![dialog_logs.jpg](dialog_logs.jpg)
 
 #### Step 1: Declare a Global Controller
 Declare a global controller for log display:
@@ -93,17 +106,9 @@ ElevatedButton(
 )
 ```
 
-### 5. Switching to Development Mode
-I have set up real-time logging to be displayed only in development (debug) mode. If you are in release mode but need to view real-time logs, you can easily switch to development mode using the following function:
+If you want to know what i do in package, checking my document here https://wong-coupon.gitbook.io/flutter/easy-code/log-color
 
-```dart
-myFuncChangeToDevMode();
-```
+## Developer Team:
+Any comments please contact us [ThaoDoan](https://github.com/mia140602) and [DucNguyen](https://github.com/ngmduc2012)
 
-This function will allow you to enable real-time logging even in release mode when necessary.
-
-## Conclusion
-With `MyLog`, you can efficiently monitor and debug your Flutter applications by setting up colored logs, saving logs to a file, and displaying real-time logs on-screen. By following this guide, you can seamlessly integrate logging into your Flutter projects, improving application maintainability and debugging efficiency.
-
-Start using `MyLog` today to gain better insights into your application's behavior!
-
+[Buy Us A Coffee ❤️](https://buymeacoffee.com/ducmng12g) | [Support Us on Ko-fi ❤️](https://ko-fi.com/I2I81AEJG8)
