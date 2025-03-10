@@ -3,33 +3,86 @@ import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:my_log/my_log.dart';
-import 'package:my_log/src/function/src.dart';
 
 /// Learn more: https://pub.dev/packages/logger_plus
 
+MyLog myLog = MyLog();
+
+/// `MyConsoleLogWidget` is a StatefulWidget that displays the actual console log content.///
+/// It provides a scrollable view of log messages, along with controls for closing, zooming,
+/// and potentially saving the log to a file.
+///
+/// This widget is typically used within a [MyConsoleLog] widget to display the console log overlay.
 class MyConsoleLogWidget extends StatefulWidget {
+  /// Determines whether the widget should use a dark theme.
+  ///
+  /// Defaults to `false` (light theme).
   final bool dark;
+
+  /// A callback function that is called when the close button is pressed.
   final Function()? onClose;
+
+  /// A callback function that is called when the zoom in button is pressed.
   final Function()? onZoomIn;
+
+  /// A callback function that is called when the zoom out button is pressed.
   final Function()? onZoomOut;
+
+  /// The file path where logs are saved (if applicable).
+  ///
+  /// If this is `null`, it indicates that logs are not being saved to a file.
   final String? pathSaveLog;
 
-  const MyConsoleLogWidget({super.key, this.dark = false, this.onClose, this.pathSaveLog, this.onZoomIn, this.onZoomOut});
+  /// Creates a [MyConsoleLogWidget].
+  ///
+  /// [dark] determines whether the widget should use a dark theme.
+  /// [onClose] is a callback function that is called when the close button is pressed.
+  /// [onZoomIn] is a callback function that is called when the zoom in button is pressed.
+  /// [onZoomOut] is a callback function that is called when the zoom out button is pressed.
+  /// [pathSaveLog] is the file path where logs are saved (if applicable).
+  const MyConsoleLogWidget(
+      {super.key,
+      this.dark = false,
+      this.onClose,
+      this.pathSaveLog,
+      this.onZoomIn,
+      this.onZoomOut});
 
   @override
-  _MyConsoleLogWidgetState createState() => _MyConsoleLogWidgetState();
+  MyConsoleLogWidgetState createState() => MyConsoleLogWidgetState();
 }
 
+/// `RenderedEvent` represents a single log event that has been formatted for display.
+///
+/// It contains the log's ID, level, the formatted text span, and the lowercase text
+/// for filtering purposes.
 class RenderedEvent {
-  final int id;
-  final Level level;
-  final TextSpan span;
-  final String lowerCaseText;
-
+  /// Creates a [RenderedEvent].
+  ///
+  /// [id] is a unique identifier for the log event.
+  /// [level] is the severity level of the log event.
+  /// [span] is the formatted text span for display.
+  /// [lowerCaseText] is the lowercase version of the log text for filtering.
   RenderedEvent(this.id, this.level, this.span, this.lowerCaseText);
+
+  /// A unique identifier for the log event.
+  final int id;
+
+  /// The severity level of the log event.
+  final Level level;
+
+  /// The formatted text span for display.
+  final TextSpan span;
+
+  /// The lowercaseversion of the log text for filtering.
+  final String lowerCaseText;
 }
 
-class _MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
+/// `MyConsoleLogWidgetState` is the State class for[MyConsoleLogWidget].
+///
+/// It manages the internal state of the console log widget, including the list of
+/// rendered log events, filtering, and scrolling.
+class MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
   final ListQueue<RenderedEvent> _renderedBuffer = ListQueue();
   List<RenderedEvent> _filteredBuffer = [];
 
@@ -44,16 +97,28 @@ class _MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
 
   final ListQueue<OutputEvent> _outputEventBuffer = ListQueue();
 
+  /// Adds a new log event to the console log.
+  ///
+  /// This method receives an [OutputEvent], adds it to the[_outputEventBuffer],
+  /// renders it into a [RenderedEvent], and updates the displayed log.
+  ///
+  /// [event] - The [OutputEvent] to add to the log.
   void addOutputListener(OutputEvent event) {
-    // myPrint(2);
+    // Add the new event to the buffer.
     _outputEventBuffer.add(event);
+
+    // Skip the cleanIndex in the buffer.
     _outputEventBuffer.skip(cleanIndex);
-    // myPrint(_outputEventBuffer.length);
+
+    // Clear the rendered buffer to rebuild it.
     _renderedBuffer.clear();
+
+    // Re-render all events in the buffer.
     for (final event in _outputEventBuffer) {
       _renderedBuffer.add(_renderEvent(event));
-      // myPrint(_renderedBuffer.length);
     }
+
+    // Refresh the filter to update the displayed logs.
     _refreshFilter();
   }
 
@@ -105,12 +170,30 @@ class _MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
     }
   }
 
+  /// The index from which to start cleaning the [_outputEventBuffer].
+  ///
+  /// This is used to optimize the cleaning process by onlyremoving events
+  /// that are older than this index.
   int cleanIndex = 0;
+
+  /// Clears the console log.
+  ///
+  /// This method removes all log events from the buffers and updates the UI.
   void clean() {
+    // Set the clean index to the current length of the output buffer.
+    // This ensures that any new events added after cleaning will not be removed.
     cleanIndex = _outputEventBuffer.length;
+
+    // Remove all events from the output buffer.
     _outputEventBuffer.clear();
+
+    // Remove all rendered events.
     _renderedBuffer.clear();
+
+    // Clear the filtered buffer.
     _filteredBuffer = [];
+
+    // Update the UI to reflect the changes.
     setState(() {
       _filteredBuffer = [];
     });
@@ -136,7 +219,7 @@ class _MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
             children: <Widget>[
               LogBar(
                 dark: widget.dark,
-                child: MyListView(
+                child: MyLogListView(
                   scrollDirection: Axis.horizontal,
                   shrinkWrap: true,
                   mainAxisSpacing: 0,
@@ -145,7 +228,9 @@ class _MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
                       IconButton(
                         icon: const Icon(Icons.save),
                         onPressed: () async {
-                          if (myEnviDevelop) myLog.setUp(path: widget.pathSaveLog);
+                          if (widget.pathSaveLog != null) {
+                            myLog.setUp(path: widget.pathSaveLog);
+                          }
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text("${widget.pathSaveLog}"),
@@ -154,7 +239,8 @@ class _MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
                         },
                       ),
                     IconButton(
-                      icon: Icon(_followBottom ? Icons.pause : Icons.play_arrow),
+                      icon:
+                          Icon(_followBottom ? Icons.pause : Icons.play_arrow),
                       onPressed: () {
                         WidgetsBinding.instance.addPostFrameCallback(
                           (_) => setState(() {
@@ -219,7 +305,7 @@ class _MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
                         width: 1600,
                         child: Scrollbar(
                           scrollbarOrientation: ScrollbarOrientation.left,
-                          child: MyListView(
+                          child: MyLogListView(
                             mainAxisSpacing: 0,
                             shrinkWrap: true,
                             controller: _scrollController,
@@ -227,8 +313,10 @@ class _MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
                               final logEntry = _filteredBuffer[index];
                               return SelectableText.rich(
                                 logEntry.span,
-                                contextMenuBuilder: (BuildContext c, EditableTextState e) {
-                                  e.copySelection(SelectionChangedCause.longPress);
+                                contextMenuBuilder:
+                                    (BuildContext c, EditableTextState e) {
+                                  e.copySelection(
+                                      SelectionChangedCause.longPress);
                                   return const SizedBox.shrink();
                                 },
                                 key: Key(logEntry.id.toString()),
@@ -335,12 +423,29 @@ class _MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
   // }
 }
 
+/// `LogBar` is a StatelessWidget that provides a styled container for log-related content.
+///
+/// It can be used to wrap a widget that displays log information, providing a consistent
+/// look and feel. It supports both light and dark themes.
 class LogBar extends StatelessWidget {
+  /// Creates a [LogBar].
+  ///
+  /// [dark] determines whether the barshould use a dark theme.
+  /// [child] is the widget to be displayed within the bar.
+  const LogBar({
+    super.key,
+    required this.dark,
+    required this.child,
+  });
+
+  /// Determines whether the bar should use a dark theme.
+  ///
+  /// If `true`, the bar will have a dark background and light text.
+  /// If `false`, the bar will have a light background and dark text.
   final bool dark;
+
+  /// The widget to be displayed within the bar.
   final Widget child;
-
-  const LogBar({super.key, required this.dark, required this.child});
-
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -367,19 +472,45 @@ class LogBar extends StatelessWidget {
   }
 }
 
+/// `AnsiParser` is a utility class for parsing ANSI escape codes within a string.
+///
+/// It is used to interpret ANSI codes that define text styling, such as colors,
+/// and convert them into Flutter's [TextSpan] objects for rich text display.
+///
+/// This class maintains the current foreground and background colors, and
+/// accumulates [TextSpan] objects asit parses the input string.
 class AnsiParser {
+  /// Represents the state of parsing plain text.
   static const TEXT = 0;
+
+  /// Represents the state of parsing within a bracketed sequence.
   static const BRACKET = 1;
+
+  /// Represents the state of parsing a code within a bracketed sequence.
   static const CODE = 2;
 
+  /// Indicates whether the parser should use a dark theme for default colors.
   final bool dark;
 
+  /// Creates an [AnsiParser].
+  ///
+  /// [dark] determines whether the parser shoulduse a dark theme for default colors.
   AnsiParser(this.dark);
 
+  /// The current foreground color being parsed.
   Color? foreground;
+
+  /// The current background color being parsed.
   Color? background;
+
+  /// The list of [TextSpan] objects generated during parsing.
   List<TextSpan> spans = [];
 
+  /// Parses the given string [s] for ANSI escape codes and generates a list of [TextSpan] objects.
+  ///
+  /// This method resets the [spans] list before parsing.
+  ///
+  /// [s] - The string to parse for ANSI escape codes.
   void parse(String s) {
     spans = [];
     var state = TEXT;
@@ -440,6 +571,15 @@ class AnsiParser {
     spans.add(createSpan(text.toString()));
   }
 
+  /// Handles a list of ANSI codes.
+  ///
+  /// This method processes a list of integer codes that represent ANSI escape
+  /// sequences. It updates the foreground and background colors, and other
+  /// text styling properties based on the codes.
+  ///
+  /// If the list of codes is empty, it defaults to a single code of `0` (reset).
+  ///
+  /// [codes] - The list of ANSI codes to handle.
   void handleCodes(List<int> codes) {
     if (codes.isEmpty) {
       codes.add(0);
@@ -460,6 +600,15 @@ class AnsiParser {
     }
   }
 
+  /// Gets a [Color] based on the given ANSI color code.
+  ///
+  /// This method maps ANSI color codes to Flutter [Color] objects. It takes
+  /// into account whether the color is for the foreground or background, and
+  /// whether a dark theme is being used.
+  ///
+  /// [colorCode] - The ANSI color code to map.
+  /// [foreground] - `true` if the color is for the foreground, `false` for the background.
+  /// Returns a [Color] object if a mapping exists, otherwise `null`.
   Color? getColor(int colorCode, bool foreground) {
     switch (colorCode) {
       case 0:
@@ -476,6 +625,12 @@ class AnsiParser {
     return null;
   }
 
+  /// Creates a [TextSpan] with the given text and current styling.
+  ////// This method creates a [TextSpan] object with the specified [text] and
+  /// applies the current foreground and background colors to its style.
+  ///
+  /// [text] - The text content of the span.
+  /// Returns a [TextSpan] object with the specified text and styling.
   TextSpan createSpan(String text) {
     return TextSpan(
       text: text,

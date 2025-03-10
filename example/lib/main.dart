@@ -1,18 +1,26 @@
 import 'dart:io';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:my_log/my_log.dart';
 import 'package:path_provider/path_provider.dart';
 
-const ourLogDiagram = "Activity Diagram";
-MyConsoleLogController consoleLogController = MyConsoleLogController();
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Directory? downloadsDir = await getDownloadsDirectory();
-  String logPath = '${downloadsDir?.path}/logfile.txt';
-  MyLog myLog = MyLog();
+
+  Directory? appDir;
+  if (Platform.isIOS) {
+    appDir =
+        await getApplicationDocumentsDirectory(); // iOS: Lưu trong Documents
+  } else if (Platform.isAndroid) {
+    appDir = await getDownloadsDirectory(); // Android: Lưu trong Downloads
+  }
+
+  if (appDir == null) {
+    myLog.error('Can not get path');
+    return;
+  }
+
+  String logPath = '${appDir.path}/logfile.txt';
   myLog.info('App started');
   await myLog.setUp(
     path: logPath,
@@ -20,14 +28,10 @@ void main() async {
     isLogging: true,
     noteInfoFileLog: 'This is the log file for my Flutter app.',
   );
-
-
-  myLog.debug('Debugging info');
-  myLog.error('An error occurred');
-  myLog.info("ADS 4.4.7 | save image", flag: ourLogDiagram, tag: "Write log");
-
   runApp(MyApp(logPath: logPath));
 }
+
+MyConsoleLogController consoleLogController = MyConsoleLogController();
 
 class MyApp extends StatelessWidget {
   final String logPath;
@@ -37,12 +41,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       // home: LogScreen(logPath: logPath),
-      builder: (context,child){
+      builder: (context, child) {
         return MyConsoleLog(
           controller: consoleLogController,
-          children: [
-            LogScreen(logPath: logPath)
-          ],
+          children: [LogScreen(logPath: logPath)],
         );
       },
     );
@@ -92,29 +94,42 @@ class _LogScreenState extends State<LogScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Log file saved at: ${widget.logPath}"),
             const SizedBox(height: 20),
-            const Text("STEP 1:", style: TextStyle(fontWeight: FontWeight.bold),),
+            const Text(
+              "STEP 1: show log dialog",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: (){
+              onPressed: () {
                 consoleLogController.setShowConsoleLog(true);
               },
               child: const Text('Show realtime logs'),
             ),
             const SizedBox(height: 20),
-            const Text("STEP 2:", style: TextStyle(fontWeight: FontWeight.bold),),
+            const Text(
+              "STEP 2: create log",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                myLog.debug('Button pressed');
-                myLog.warning('This is a warning');
-                myLog.error('This is an error');
+                myLog.trace(1, tag: "Your tag", flag: "Your flag");
+                myLog.info(2, tag: "Your tag", flag: "Your flag");
+                myLog.debug(3);
+                myLog.warning(4, tag: "Your tag", flag: "Your flag");
+                myLog.error(5, tag: "Your tag", flag: "Your flag");
+                myLog.fatal(6, error: "ERROR");
               },
               child: const Text('Press Me'),
             ),
             const SizedBox(height: 20),
-            const Text("STEP 3:", style: TextStyle(fontWeight: FontWeight.bold),),
+            const Text(
+              "STEP 3: save file log",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            Text("Log file saved at: ${widget.logPath}"),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: readLogFile,
