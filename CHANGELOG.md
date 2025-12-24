@@ -1,4 +1,4 @@
-## 1.0.1
+## 1.0.1+7
 
 - Add core/file/utilities tests and UI helper widget tests.
 - Add example widget tests and refresh example config.
