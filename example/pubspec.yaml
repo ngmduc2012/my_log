@@ -2,6 +2,7 @@ name: example
 description: "A new Flutter project."
 version: 1.0.0+1
 repository: https://github.com/ngmduc2012/my_log.git
+publish_to: "none"
 
 environment:
   sdk: ^3.5.0

@@ -481,13 +481,13 @@ class LogBar extends StatelessWidget {
 /// accumulates [TextSpan] objects asit parses the input string.
 class AnsiParser {
   /// Represents the state of parsing plain text.
-  static const TEXT = 0;
+  static const textState = 0;
 
   /// Represents the state of parsing within a bracketed sequence.
-  static const BRACKET = 1;
+  static const bracketState = 1;
 
   /// Represents the state of parsing a code within a bracketed sequence.
-  static const CODE = 2;
+  static const codeState = 2;
 
   /// Indicates whether the parser should use a dark theme for default colors.
   final bool dark;
@@ -513,7 +513,7 @@ class AnsiParser {
   /// [s] - The string to parse for ANSI escape codes.
   void parse(String s) {
     spans = [];
-    var state = TEXT;
+    var state = textState;
     StringBuffer? buffer;
     final text = StringBuffer();
     var code = 0;
@@ -523,9 +523,9 @@ class AnsiParser {
       final c = s[i];
 
       switch (state) {
-        case TEXT:
+        case textState:
           if (c == '\u001b') {
-            state = BRACKET;
+            state = bracketState;
             buffer = StringBuffer(c);
             code = 0;
             codes = [];
@@ -533,16 +533,16 @@ class AnsiParser {
             text.write(c);
           }
 
-        case BRACKET:
+        case bracketState:
           buffer?.write(c);
           if (c == '[') {
-            state = CODE;
+            state = codeState;
           } else {
-            state = TEXT;
+            state = textState;
             text.write(buffer);
           }
 
-        case CODE:
+        case codeState:
           buffer?.write(c);
           final codeUnit = c.codeUnitAt(0);
           if (codeUnit >= 48 && codeUnit <= 57) {
@@ -557,7 +557,7 @@ class AnsiParser {
               spans.add(createSpan(text.toString()));
               text.clear();
             }
-            state = TEXT;
+            state = textState;
             if (c == 'm') {
               codes.add(code);
               handleCodes(codes);

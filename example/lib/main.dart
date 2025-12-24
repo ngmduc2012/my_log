@@ -56,10 +56,10 @@ class LogScreen extends StatefulWidget {
   const LogScreen({super.key, required this.logPath});
 
   @override
-  _LogScreenState createState() => _LogScreenState();
+  LogScreenState createState() => LogScreenState();
 }
 
-class _LogScreenState extends State<LogScreen> {
+class LogScreenState extends State<LogScreen> {
   MyLog myLog = MyLog();
   String logContent = "";
 

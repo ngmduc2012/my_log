@@ -1,4 +1,5 @@
 
+[![codecov](https://codecov.io/gh/ngmduc2012/my_log/branch/main/graph/badge.svg)](https://codecov.io/gh/ngmduc2012/my_log)
 [![GitHub](https://img.shields.io/badge/Nguyen_Duc-GitHub-black?logo=github)](https://github.com/ngmduc2012)
 _[![Buy Me A Coffee](https://img.shields.io/badge/Donate-Buy_Me_A_Coffee-blue?logo=buymeacoffee)](https://www.buymeacoffee.com/ducmng12g)_
 _[![PayPal](https://img.shields.io/badge/Donate-PayPal-blue?logo=paypal)](https://paypal.me/ngmduc)_
@@ -111,4 +112,3 @@ If you want to know what i do in package, checking my document here https://wong
 ## Developer Team:
 Any comments please contact us [ThaoDoan](https://github.com/mia140602) and [DucNguyen](https://github.com/ngmduc2012)
 
-[Buy Us A Coffee ❤️](https://buymeacoffee.com/ducmng12g) | [Support Us on Ko-fi ❤️](https://ko-fi.com/I2I81AEJG8)
