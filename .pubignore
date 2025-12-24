@@ -1,1 +1,10 @@
+.idea/
+.dart_tool/
+build/
+coverage/
 coverage/html/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+.vscode/
