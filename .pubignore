@@ -1,7 +1,6 @@
 .idea/
 .dart_tool/
 build/
-coverage/
 coverage/html/
 *.iml
 *.ipr
