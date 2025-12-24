@@ -1,6 +1,5 @@
 import 'dart:collection';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:my_log/my_log.dart';
@@ -100,32 +99,41 @@ class MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
   final ListQueue<OutputEvent> _outputEventBuffer = ListQueue();
 
   @visibleForTesting
+  /// Exposes current filtered count for tests.
   int get filteredCount => _filteredBuffer.length;
 
   @visibleForTesting
+  /// Exposes current log font size for tests.
   double get logFontSize => _logFontSize;
 
   @visibleForTesting
+  /// Exposes follow-bottom state for tests.
   bool get isFollowingBottom => _followBottom;
 
   @visibleForTesting
+  /// Exposes rendered buffer count for tests.
   int get renderedCount => _renderedBuffer.length;
 
   @visibleForTesting
+  /// Exposes output buffer count for tests.
   int get outputEventCount => _outputEventBuffer.length;
 
   @visibleForTesting
+  /// Exposes current vertical scroll offset for tests.
   double get scrollOffset =>
       _scrollController.hasClients ? _scrollController.offset : 0;
 
   @visibleForTesting
+  /// Exposes current max scroll extent for tests.
   double get maxScrollExtent =>
       _scrollController.hasClients ? _scrollController.position.maxScrollExtent : 0;
 
   @visibleForTesting
+  /// Exposes scroll controller for tests.
   ScrollController get scrollController => _scrollController;
 
   @visibleForTesting
+  /// Calculates filtered count with optional overrides for tests.
   int calculateFilteredCount({Level? level, String? text}) {
     final filterLevel = level ?? _filterLevel;
     final filterText = text ?? _filterController.text;
@@ -143,6 +151,7 @@ class MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
   }
 
   @visibleForTesting
+  /// Overrides filter settings for tests.
   void setFilterForTesting({Level? level, String? text}) {
     if (level != null) {
       _filterLevel = level;

@@ -1,18 +1,25 @@
-.PHONY: init test test-root test-example push
+.PHONY: init test test-root test-example analyze push
 
 FLUTTER ?= flutter
+DART ?= dart
 
 init:
 	$(FLUTTER) pub get
 	cd example && $(FLUTTER) pub get
 
-test: test-root test-example
+test:
+	$(MAKE) test-root
+	$(MAKE) test-example
+	$(MAKE) analyze
 
 test-root:
 	$(FLUTTER) test
 
 test-example:
 	cd example && $(FLUTTER) test
+
+analyze:
+	$(DART) analyze
 
 push: test
 	git add .

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:my_log/my_log.dart';
 
@@ -96,7 +95,7 @@ class _MyConsoleLogState extends State<MyConsoleLog> {
   }
 
   void _updateScale(double delta) {
-    final nextScale = (scale + delta).clamp(_minScale, _maxScale) as double;
+    final nextScale = (scale + delta).clamp(_minScale, _maxScale);
     if (nextScale == scale) {
       return;
     }

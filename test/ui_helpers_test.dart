@@ -476,7 +476,7 @@ void main() {
       final state = await pumpConsoleLogWidget(tester);
       final logger = Logger(
         printer: PrettyPrinter(
-          printTime: false,
+          dateTimeFormat: DateTimeFormat.none,
           printEmojis: false,
           colors: false,
         ),
@@ -499,7 +499,7 @@ void main() {
       final state = await pumpConsoleLogWidget(tester);
       final logger = Logger(
         printer: PrettyPrinter(
-          printTime: false,
+          dateTimeFormat: DateTimeFormat.none,
           printEmojis: false,
           colors: false,
         ),
@@ -577,7 +577,7 @@ void main() {
       final state = await pumpConsoleLogWidget(tester);
       final logger = Logger(
         printer: PrettyPrinter(
-          printTime: false,
+          dateTimeFormat: DateTimeFormat.none,
           printEmojis: false,
           colors: false,
         ),
@@ -601,7 +601,7 @@ void main() {
       final state = await pumpConsoleLogWidget(tester);
       final logger = Logger(
         printer: PrettyPrinter(
-          printTime: false,
+          dateTimeFormat: DateTimeFormat.none,
           printEmojis: false,
           colors: false,
         ),
@@ -629,7 +629,7 @@ void main() {
       final state = await pumpConsoleLogWidget(tester);
       final logger = Logger(
         printer: PrettyPrinter(
-          printTime: false,
+          dateTimeFormat: DateTimeFormat.none,
           printEmojis: false,
           colors: false,
         ),

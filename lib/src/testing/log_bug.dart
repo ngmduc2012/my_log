@@ -6,8 +6,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 
+/// Function signature used to override debugger invocation for tests.
 typedef DebuggerCallback = void Function({bool when, String? message});
 
+/// Hook used by [myDebugger] to allow tests to intercept debugger calls.
 DebuggerCallback debuggerHook = developer.debugger;
 
 /*
