@@ -187,6 +187,26 @@ void main() {
       expect(content.contains('WARN'), isTrue);
     });
 
+    test('FileOutput2 destroy flushes output', () async {
+      final dir = await Directory.systemTemp.createTemp('my_log_test_');
+      addTearDown(() => dir.delete(recursive: true));
+
+      final file = File('${dir.path}/log.txt');
+      final output = FileOutput2(file: file);
+      await output.init();
+      final event = LogEvent(
+        Level.info,
+        'FLUSH MESSAGE',
+        time: DateTime.utc(2022, 1, 1),
+        error: 'ERR',
+      );
+      output.output(OutputEvent(event, const ['FLUSH MESSAGE']));
+      await output.destroy();
+
+      final content = await file.readAsString();
+      expect(content.contains('FLUSH MESSAGE'), isTrue);
+    });
+
     test('noteInfoFileLog appends across setUp calls', () async {
       final dir = await Directory.systemTemp.createTemp('my_log_test_');
       addTearDown(() => dir.delete(recursive: true));
@@ -215,6 +235,36 @@ void main() {
       expect(content.contains('NOTE2'), isTrue);
       expect(content.indexOf('NOTE1'), lessThan(content.indexOf('NOTE2')));
     });
+
+    test('setUp with path includes time in output when printTime is true',
+        () async {
+      final dir = await Directory.systemTemp.createTemp('my_log_test_');
+      addTearDown(() => dir.delete(recursive: true));
+
+      final file = File('${dir.path}/log.txt');
+      final myLog = MyLog();
+      final outputs = <OutputEvent>[];
+
+      void outputListener(OutputEvent event) {
+        outputs.add(event);
+      }
+
+      Logger.addOutputListener(outputListener);
+      addTearDown(() => Logger.removeOutputListener(outputListener));
+
+      await myLog.setUp(path: file.path, printTime: true);
+      await myLog.logger.init;
+      myLog.info('info message', tag: 'TAG');
+      await myLog.logger.close();
+
+      expect(outputs, isNotEmpty);
+      final lines = outputs.last.lines.join('\n');
+      expect(
+        RegExp(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}')
+            .hasMatch(lines),
+        isTrue,
+      );
+    });
   });
 
   group('MyLog utilities', () {
@@ -232,6 +282,15 @@ void main() {
       expect(lines[3], 'hello');
     });
 
+    test('myPrint falls back to parent method name when tag is null', () {
+      final lines = _capturePrints(() {
+        myPrint('hello');
+      });
+
+      expect(lines.single, contains(' | hello'));
+      expect(lines.single, matches(RegExp(r'(dart:|package:)')));
+    });
+
     test('myDebugPrint uses formatter', () {
       final lines = <String?>[];
       final original = debugPrint;
@@ -245,12 +304,42 @@ void main() {
       expect(lines, ['TAG | FLAG | hello']);
     });
 
+    test('myDebugPrint falls back to parent method name when tag is null', () {
+      final lines = <String?>[];
+      final original = debugPrint;
+      debugPrint = (String? message, {int? wrapWidth}) {
+        lines.add(message);
+      };
+      addTearDown(() => debugPrint = original);
+
+      myDebugPrint('hello');
+
+      expect(lines.single, contains(' | hello'));
+      expect(lines.single, matches(RegExp(r'(dart:|package:)')));
+    });
+
     test('myLogDev does not throw', () {
       expect(() => myLogDev('hello', tag: 'TAG'), returnsNormally);
     });
 
     test('myDebugger does not throw when disabled', () {
       expect(() => myDebugger('hello', when: false), returnsNormally);
+    });
+
+    test('myDebugger invokes hook when enabled', () {
+      bool? lastWhen;
+      String? lastMessage;
+      final original = debuggerHook;
+      debuggerHook = ({bool when = true, String? message}) {
+        lastWhen = when;
+        lastMessage = message;
+      };
+      addTearDown(() => debuggerHook = original);
+
+      myDebugger('hello', tag: 'TAG', when: true);
+
+      expect(lastWhen, isTrue);
+      expect(lastMessage, 'TAG | hello');
     });
 
     test('myFucGetParentMethodName includes caller', () {

@@ -4,30 +4,69 @@ import 'package:flutter/material.dart';
 import 'package:my_log/my_log.dart';
 import 'package:path_provider/path_provider.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+typedef DirectoryProvider = Future<Directory?> Function();
 
-  Directory? appDir;
-  if (Platform.isIOS) {
-    appDir =
-        await getApplicationDocumentsDirectory(); // iOS: Lưu trong Documents
-  } else if (Platform.isAndroid) {
-    appDir = await getDownloadsDirectory(); // Android: Lưu trong Downloads
+Future<Directory?> resolveAppDirectory({
+  required bool isIOS,
+  required bool isAndroid,
+  required DirectoryProvider getDocumentsDirectory,
+  required DirectoryProvider getDownloadsDirectory,
+}) async {
+  if (isIOS) {
+    return getDocumentsDirectory();
   }
+  if (isAndroid) {
+    return getDownloadsDirectory();
+  }
+  return null;
+}
+
+Future<String?> setUpLogging({
+  required MyLog log,
+  required bool isIOS,
+  required bool isAndroid,
+  required DirectoryProvider getDocumentsDirectory,
+  required DirectoryProvider getDownloadsDirectory,
+}) async {
+  final appDir = await resolveAppDirectory(
+    isIOS: isIOS,
+    isAndroid: isAndroid,
+    getDocumentsDirectory: getDocumentsDirectory,
+    getDownloadsDirectory: getDownloadsDirectory,
+  );
 
   if (appDir == null) {
-    myLog.error('Can not get path');
-    return;
+    log.error('Can not get path');
+    return null;
   }
 
-  String logPath = '${appDir.path}/logfile.txt';
-  myLog.info('App started');
-  await myLog.setUp(
+  final logPath = '${appDir.path}/logfile.txt';
+  log.info('App started');
+  await log.setUp(
     path: logPath,
     printTime: true,
     isLogging: true,
     noteInfoFileLog: 'This is the log file for my Flutter app.',
   );
+
+  return logPath;
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final logPath = await setUpLogging(
+    log: myLog,
+    isIOS: Platform.isIOS,
+    isAndroid: Platform.isAndroid,
+    getDocumentsDirectory: getApplicationDocumentsDirectory,
+    getDownloadsDirectory: getDownloadsDirectory,
+  );
+
+  if (logPath == null) {
+    return;
+  }
+
   runApp(MyApp(logPath: logPath));
 }
 

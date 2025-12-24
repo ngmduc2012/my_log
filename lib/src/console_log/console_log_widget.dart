@@ -1,5 +1,6 @@
 import 'dart:collection';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:my_log/my_log.dart';
@@ -87,6 +88,7 @@ class MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
   List<RenderedEvent> _filteredBuffer = [];
 
   final _scrollController = ScrollController();
+  final _horizontalScrollController = ScrollController();
   final _filterController = TextEditingController();
 
   Level _filterLevel = Level.debug;
@@ -96,6 +98,60 @@ class MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
   bool _followBottom = true;
 
   final ListQueue<OutputEvent> _outputEventBuffer = ListQueue();
+
+  @visibleForTesting
+  int get filteredCount => _filteredBuffer.length;
+
+  @visibleForTesting
+  double get logFontSize => _logFontSize;
+
+  @visibleForTesting
+  bool get isFollowingBottom => _followBottom;
+
+  @visibleForTesting
+  int get renderedCount => _renderedBuffer.length;
+
+  @visibleForTesting
+  int get outputEventCount => _outputEventBuffer.length;
+
+  @visibleForTesting
+  double get scrollOffset =>
+      _scrollController.hasClients ? _scrollController.offset : 0;
+
+  @visibleForTesting
+  double get maxScrollExtent =>
+      _scrollController.hasClients ? _scrollController.position.maxScrollExtent : 0;
+
+  @visibleForTesting
+  ScrollController get scrollController => _scrollController;
+
+  @visibleForTesting
+  int calculateFilteredCount({Level? level, String? text}) {
+    final filterLevel = level ?? _filterLevel;
+    final filterText = text ?? _filterController.text;
+    final normalized = filterText.toLowerCase();
+    return _renderedBuffer.where((it) {
+      final logLevelMatches = it.level.index >= filterLevel.index;
+      if (!logLevelMatches) {
+        return false;
+      } else if (normalized.isNotEmpty) {
+        return it.lowerCaseText.contains(normalized);
+      } else {
+        return true;
+      }
+    }).length;
+  }
+
+  @visibleForTesting
+  void setFilterForTesting({Level? level, String? text}) {
+    if (level != null) {
+      _filterLevel = level;
+    }
+    if (text != null) {
+      _filterController.text = text;
+    }
+    _refreshFilter();
+  }
 
   /// Adds a new log event to the console log.
   ///
@@ -125,6 +181,9 @@ class MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
   @override
   void dispose() {
     Logger.removeOutputListener(addOutputListener);
+    _scrollController.dispose();
+    _horizontalScrollController.dispose();
+    _filterController.dispose();
     super.dispose();
   }
 
@@ -157,11 +216,14 @@ class MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
         return true;
       }
     }).toList();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => setState(() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
         _filteredBuffer = newFilteredBuffer;
-      }),
-    );
+      });
+    });
 
     if (_followBottom) {
       // Future.delayed(const Duration(milliseconds: 10), (){
@@ -298,12 +360,15 @@ class MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
                 child: Container(
                   color: widget.dark ? Colors.black : Colors.grey[150],
                   child: Scrollbar(
+                    controller: _horizontalScrollController,
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
+                      controller: _horizontalScrollController,
                       child: Container(
                         color: widget.dark ? Colors.black : Colors.grey[150],
                         width: 1600,
                         child: Scrollbar(
+                          controller: _scrollController,
                           scrollbarOrientation: ScrollbarOrientation.left,
                           child: MyLogListView(
                             mainAxisSpacing: 0,
@@ -391,13 +456,19 @@ class MyConsoleLogWidgetState extends State<MyConsoleLogWidget> {
   }
 
   void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => setState(() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
         _followBottom = true;
-      }),
-    );
+      });
+    });
 
     try {
+      if (!_scrollController.hasClients) {
+        return;
+      }
       final scrollPosition = _scrollController.position;
       _scrollController.jumpTo(scrollPosition.maxScrollExtent);
     } catch (e) {

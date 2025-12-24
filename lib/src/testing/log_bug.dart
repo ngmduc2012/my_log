@@ -6,6 +6,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 
+typedef DebuggerCallback = void Function({bool when, String? message});
+
+DebuggerCallback debuggerHook = developer.debugger;
+
 /*
 Learn more: https://pub.dev/packages/logger
 
@@ -484,7 +488,7 @@ class FileOutput2 extends LogOutput {
 ///     Defaults to `true`. If`false`, the debugger will not be triggered, and
 ///     only the message will be printed to the console.
 void myDebugger(Object? object, {String? tag, String? flag, bool when = true}) {
-  developer.debugger(
+  debuggerHook(
     when: when,
     message: _print(
       object,

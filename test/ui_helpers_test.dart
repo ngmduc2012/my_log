@@ -1,9 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logger/logger.dart';
 import 'package:my_log/my_log.dart';
 
+class _SpyMyLog extends MyLog {
+  int setUpCalls = 0;
+  String? lastPath;
+
+  @override
+  Future<void> setUp({
+    String? path,
+    bool printTime = true,
+    bool isLogging = true,
+    String? noteInfoFileLog,
+  }) async {
+    setUpCalls++;
+    lastPath = path;
+  }
+}
+
 void main() {
+  Future<MyConsoleLogWidgetState> pumpConsoleLogWidget(
+    WidgetTester tester, {
+    String? pathSaveLog,
+  }) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MyConsoleLogWidget(
+            pathSaveLog: pathSaveLog,
+          ),
+        ),
+      ),
+    );
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    return tester.state<MyConsoleLogWidgetState>(
+      find.byType(MyConsoleLogWidget),
+    );
+  }
+
   group('MyFloatingWidget', () {
     testWidgets('autoCenter positions child', (tester) async {
       const childKey = Key('float-child');
@@ -337,6 +376,278 @@ void main() {
 
       expect(find.byIcon(Icons.save), findsOneWidget);
     });
+
+    testWidgets('creates internal controller when none provided',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: MyConsoleLog(
+            children: [SizedBox()],
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final state = tester.state(find.byType(MyConsoleLog)) as dynamic;
+      final internalController = state.controller as MyConsoleLogController;
+
+      internalController.setShowConsoleLog(true);
+      await tester.pump();
+
+      expect(find.byType(MyConsoleLogWidget), findsOneWidget);
+    });
+
+    testWidgets('onClose hides overlay', (tester) async {
+      final controller = MyConsoleLogController()..setShowConsoleLog(true);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MyConsoleLog(
+            controller: controller,
+            children: const [SizedBox()],
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(MyConsoleLogWidget), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pump();
+
+      expect(controller.isShowConsoleLog, isFalse);
+      expect(find.byType(MyConsoleLogWidget), findsNothing);
+    });
+
+    testWidgets('zoom is clamped within bounds', (tester) async {
+      final controller = MyConsoleLogController();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MyConsoleLog(
+            controller: controller,
+            children: const [SizedBox()],
+          ),
+        ),
+      );
+      controller.setShowConsoleLog(true);
+      await tester.pumpAndSettle();
+
+      final state = tester.state(find.byType(MyConsoleLog)) as dynamic;
+      expect(find.byType(MyConsoleLogWidget), findsOneWidget);
+
+      final logWidget = tester.widget<MyConsoleLogWidget>(
+        find.byType(MyConsoleLogWidget),
+      );
+      expect(logWidget.onZoomIn, isNotNull);
+      expect(logWidget.onZoomOut, isNotNull);
+
+      for (var i = 0; i < 20; i++) {
+        logWidget.onZoomIn!.call();
+        await tester.pump();
+      }
+
+      expect(state.scaleFactor as double, closeTo(1.0, 0.0001));
+
+      for (var i = 0; i < 30; i++) {
+        logWidget.onZoomOut!.call();
+        await tester.pump();
+      }
+
+      expect(state.scaleFactor as double, closeTo(0.3, 0.0001));
+    });
+  });
+
+  group('MyConsoleLogWidget', () {
+    testWidgets('toggles follow bottom and scrolls to bottom', (tester) async {
+      final state = await pumpConsoleLogWidget(tester);
+      expect(state.isFollowingBottom, isTrue);
+
+      await tester.tap(find.byIcon(Icons.pause));
+      await tester.pumpAndSettle();
+      expect(state.isFollowingBottom, isFalse);
+
+      await tester.tap(find.byIcon(Icons.arrow_downward));
+      await tester.pumpAndSettle();
+      expect(state.isFollowingBottom, isTrue);
+    });
+
+    testWidgets('filters by level and text', (tester) async {
+      final state = await pumpConsoleLogWidget(tester);
+      final logger = Logger(
+        printer: PrettyPrinter(
+          printTime: false,
+          printEmojis: false,
+          colors: false,
+        ),
+      );
+      await logger.init;
+
+      logger.i('hello');
+      logger.w('bye');
+      await tester.pump();
+      await tester.pump();
+
+      expect(state.renderedCount, 2);
+      expect(state.calculateFilteredCount(), 2);
+      expect(state.calculateFilteredCount(level: Level.warning), 1);
+      expect(state.calculateFilteredCount(text: 'bye'), 1);
+      expect(state.calculateFilteredCount(text: 'missing'), 0);
+    });
+
+    testWidgets('delete clears log list', (tester) async {
+      final state = await pumpConsoleLogWidget(tester);
+      final logger = Logger(
+        printer: PrettyPrinter(
+          printTime: false,
+          printEmojis: false,
+          colors: false,
+        ),
+      );
+      await logger.init;
+
+      logger.i('hello');
+      await tester.pump();
+      await tester.pump();
+
+      expect(state.renderedCount, 1);
+
+      await tester.tap(find.byIcon(Icons.delete));
+      await tester.pump();
+      await tester.pump();
+
+      expect(state.renderedCount, 0);
+      expect(state.outputEventCount, 0);
+    });
+
+    testWidgets('font size changes with add/remove', (tester) async {
+      final state = await pumpConsoleLogWidget(tester);
+      state.addOutputListener(
+        OutputEvent(LogEvent(Level.info, 'info'), const ['INFO hello']),
+      );
+      await tester.pumpAndSettle();
+
+      expect(state.logFontSize, 10);
+
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      expect(state.logFontSize, 11);
+
+      await tester.tap(find.byIcon(Icons.remove));
+      await tester.pumpAndSettle();
+      expect(state.logFontSize, 10);
+    });
+
+    testWidgets('zoom callbacks are invoked', (tester) async {
+      var zoomInCalls = 0;
+      var zoomOutCalls = 0;
+
+      await tester.pumpWidget(
+        MyConsoleLogWidget(
+          onZoomIn: () => zoomInCalls++,
+          onZoomOut: () => zoomOutCalls++,
+        ),
+      );
+
+      await tester.tap(find.byIcon(Icons.zoom_out_map));
+      await tester.tap(find.byIcon(Icons.zoom_in_map));
+      await tester.pump();
+
+      expect(zoomInCalls, 1);
+      expect(zoomOutCalls, 1);
+    });
+
+    testWidgets('save shows snackbar and calls myLog.setUp', (tester) async {
+      final originalLog = myLog;
+      final spyLog = _SpyMyLog();
+      myLog = spyLog;
+      addTearDown(() => myLog = originalLog);
+
+      await pumpConsoleLogWidget(tester, pathSaveLog: 'log.txt');
+
+      await tester.tap(find.byIcon(Icons.save));
+      await tester.pumpAndSettle();
+
+      expect(spyLog.setUpCalls, 1);
+      expect(spyLog.lastPath, 'log.txt');
+      expect(find.text('log.txt'), findsOneWidget);
+    });
+
+    testWidgets('scroll to bottom jumps to max extent', (tester) async {
+      final state = await pumpConsoleLogWidget(tester);
+      final logger = Logger(
+        printer: PrettyPrinter(
+          printTime: false,
+          printEmojis: false,
+          colors: false,
+        ),
+      );
+      await logger.init;
+
+      for (var i = 0; i < 40; i++) {
+        logger.i('Line $i');
+      }
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.byIcon(Icons.arrow_downward));
+      await tester.pump();
+
+      expect(state.scrollOffset, closeTo(state.maxScrollExtent, 0.1));
+      expect(state.isFollowingBottom, isTrue);
+    });
+
+    testWidgets('cleanIndex allows new events after clean', (tester) async {
+      final state = await pumpConsoleLogWidget(tester);
+      final logger = Logger(
+        printer: PrettyPrinter(
+          printTime: false,
+          printEmojis: false,
+          colors: false,
+        ),
+      );
+      await logger.init;
+
+      logger.i('hello');
+      await tester.pump();
+      await tester.pump();
+      expect(state.renderedCount, 1);
+
+      state.clean();
+      await tester.pump();
+      await tester.pump();
+      expect(state.renderedCount, 0);
+
+      logger.w('again');
+      await tester.pump();
+      await tester.pump();
+      expect(state.renderedCount, 1);
+    });
+
+    testWidgets('didChangeDependencies refreshes rendered buffer',
+        (tester) async {
+      final state = await pumpConsoleLogWidget(tester);
+      final logger = Logger(
+        printer: PrettyPrinter(
+          printTime: false,
+          printEmojis: false,
+          colors: false,
+        ),
+      );
+      await logger.init;
+
+      logger.i('hello');
+      await tester.pump();
+      await tester.pump();
+
+      expect(state.renderedCount, 1);
+
+      state.didChangeDependencies();
+      await tester.pump();
+      await tester.pump();
+
+      expect(state.renderedCount, 1);
+    });
   });
 
   group('AnsiParser', () {
@@ -391,6 +702,30 @@ void main() {
 
       expect(parser.spans, hasLength(1));
       expect(parser.spans[0].style?.color, Colors.lightBlue[300]);
+    });
+
+    test('resets foreground with code 39', () {
+      final parser = AnsiParser(false);
+      const esc = '\u001b';
+      parser.parse('$esc[38;5;196mRed$esc[39mNormal');
+
+      expect(parser.spans, hasLength(2));
+      expect(parser.spans[0].style?.color, Colors.red[700]);
+      expect(parser.spans[1].text, 'Normal');
+      expect(parser.spans[1].style?.color, Colors.black);
+    });
+
+    test('applies sequential ANSI codes', () {
+      final parser = AnsiParser(false);
+      const esc = '\u001b';
+      parser.parse('$esc[38;5;196mR$esc[48;5;208mB');
+
+      expect(parser.spans, hasLength(2));
+      expect(parser.spans[0].text, 'R');
+      expect(parser.spans[0].style?.color, Colors.red[700]);
+      expect(parser.spans[1].text, 'B');
+      expect(parser.spans[1].style?.color, Colors.red[700]);
+      expect(parser.spans[1].style?.backgroundColor, Colors.orange[700]);
     });
   });
 

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:my_log/my_log.dart';
 
@@ -26,39 +27,83 @@ class MyConsoleLog extends StatefulWidget {
 
 class _MyConsoleLogState extends State<MyConsoleLog> {
   /// Internal controller instance (if not provided externally).
-  late MyConsoleLogController controller;
+  MyConsoleLogController? _controller;
+  VoidCallback? _controllerListener;
+  bool _ownsController = false;
+
+  static const double _minScale = 0.3;
+  static const double _maxScale = 1.0;
+  static const double _scaleStep = 0.1;
+
+  @override
+  void dispose() {
+    _detachController();
+    super.dispose();
+  }
+
+  /// Scaling factor for resizing the console log UI
+  double scale = 2 / 3;
+
+  @visibleForTesting
+  double get scaleFactor => scale;
+
+  MyConsoleLogController get controller => _controller!;
 
   @override
   void initState() {
     super.initState();
-    // Use the provided controller or create a new one
-    controller = widget.controller ?? MyConsoleLogController();
-    try {
-      // Listen for changes in the controller and update the UI accordingly
-      controller.addListener(() {
-        if (mounted) {
-          setState(() {});
-        }
-      });
-    } catch (e) {
-      myLog.warning(e, error: e);
-    }
+    _attachController(widget.controller);
   }
 
   // Called when the widget is updated with new properties
   @override
   void didUpdateWidget(MyConsoleLog oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      _attachController(widget.controller);
+    }
   }
 
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
+  void _attachController(MyConsoleLogController? nextController) {
+    _detachController();
+    _ownsController = nextController == null;
+    _controller = nextController ?? MyConsoleLogController();
+    _controllerListener = () {
+      if (mounted) {
+        setState(() {});
+      }
+    };
+    try {
+      controller.addListener(_controllerListener!);
+    } catch (e) {
+      myLog.warning(e, error: e);
+    }
   }
 
-  /// Scaling factor for resizing the console log UI
-  double scale = 2 / 3;
+  void _detachController() {
+    if (_controller == null) {
+      return;
+    }
+    if (_controllerListener != null) {
+      controller.removeListener(_controllerListener!);
+      _controllerListener = null;
+    }
+    if (_ownsController) {
+      controller.dispose();
+    }
+    _controller = null;
+    _ownsController = false;
+  }
+
+  void _updateScale(double delta) {
+    final nextScale = (scale + delta).clamp(_minScale, _maxScale) as double;
+    if (nextScale == scale) {
+      return;
+    }
+    setState(() {
+      scale = nextScale;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,14 +121,10 @@ class _MyConsoleLogState extends State<MyConsoleLog> {
                   controller.setShowConsoleLog(false);
                 },
                 onZoomIn: () {
-                  setState(() {
-                    scale += 0.1;
-                  });
+                  _updateScale(_scaleStep);
                 },
                 onZoomOut: () {
-                  setState(() {
-                    scale -= 0.1;
-                  });
+                  _updateScale(-_scaleStep);
                 },
               ),
             )

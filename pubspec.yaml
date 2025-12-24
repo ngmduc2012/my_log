@@ -1,5 +1,5 @@
 name: my_log
-version: 1.0.1+7
+version: 1.0.2+8
 description: A powerful Flutter logging package with colored logs, file logging, and real-time log display on screen.
 repository: https://github.com/ngmduc2012/my_log.git
 funding:
